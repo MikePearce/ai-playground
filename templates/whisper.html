@@ -1,0 +1,43 @@
+{% extends 'includes/layout.html' %}
+
+
+
+
+{% block body %}
+<main class="container">
+  <div class="bg-light p-5 rounded mt-5">
+    <h1>Whisper</h1>
+    <p class="lead">
+      Speech to text
+    </p>
+
+    <h2>Upload a file</h2>
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-danger" role="alert">
+      {{ message }}
+    </div>
+    {% endfor %}
+    <form class="" action="/whisper" method="post" enctype = "multipart/form-data">
+
+      <div class="mb-3">
+        <label class="form-label" for="subject">Subject</label>
+         <input type = "file" name = "uploaded_file" />
+      </div>
+
+
+      <button type="submit" class="btn btn-primary btn-lg">Upload</button>
+
+    </form>
+  </div>
+
+
+  <div class="p-3 rounded">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3 class="text-primary">Text from Speech</h3>
+        <p class="lead">{{openAIAnswer|replace('\n', '<br>')|safe}}</p>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

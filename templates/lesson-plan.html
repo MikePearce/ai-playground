@@ -1,0 +1,56 @@
+{% extends 'includes/layout.html' %}
+
+
+
+
+{% block body %}
+<main class="container">
+  <div class="bg-light p-5 rounded mt-5">
+    <h1>Generate a Lesson Plan</h1>
+    <p class="lead">
+      Generate a lesson plan
+    </p>
+
+    <h2>Enter the details of your lesson</h2>
+
+    <form class="" action="/lesson-plan" method="post">
+
+      <div class="mb-3">
+        <label class="form-label" for="subject">Subject</label>
+        <select name="subject" id="subject">
+          {% for subject in subjects %}
+          <option value="{{ subject }}">{{ subject }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="grade">Grade</label>
+        <select name="grade" id="grade">
+          {% for grade in grades %}
+          <option value="{{ grade }}">{{ grade }}</option>
+          {% endfor %}
+        </select>
+      </div>      
+
+      <div class="mb-3">
+        <label class="form-label" for="topic">Topic</label>
+        <input type="text" class="form-control" name="topic" placeholder="eg. Earthquakes, pythagaros theorum, weasel mating habitss">
+      </div>      
+
+      <button type="submit" class="btn btn-primary btn-lg">Quick! Make me a plan!</button>
+
+    </form>
+  </div>
+
+
+  <div class="p-3 rounded">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3 class="text-primary">{{prompt}}</h3>
+        <p class="lead">{{openAIAnswer|replace('\n', '<br>')|safe}}</p>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
