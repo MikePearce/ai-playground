@@ -1,0 +1,66 @@
+{% extends 'includes/layout.html' %}
+
+
+{% block body %}
+<main class="container">
+  <div class="bg-light p-5 rounded mt-5">
+    <h1> 📄 Generate Documents 📄 </h1>
+    <p class="lead">
+    Frightend by sitting in front of a blank word file trying to write a policy or procedure for your organisation? Use this form for a quickstart draft to get you going!
+    </p>
+
+    <h2>Enter the services your company provides</h2>
+
+    <form class="" action="/document" method="post">
+
+      <div class="mb-3">
+        <label class="form-label" for="orgname">Company Name</label>
+        <input type="text" class="form-control" name="orgname" id="orgname" placeholder="eg. My Cool Company" value="{{post_orgname}}">
+        <div class="form-text">What is the name of your organisation?</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="industry">Industry</label>
+        <select name="industry" id="industry">
+          <option disabled selected>-- Select an industry</option>
+          {% for key in industries %}
+            <option value="{{key}}" {% if key == post_industry %} selected {% endif %}>{{key}}</option>
+          {% endfor %}
+        </select>
+        <div class="form-text">What industry is your company in?</div>
+      </div>      
+
+      <div class="mb-3">
+        <label class="form-label" for="standard">Standard</label>
+        <select name="standard" id="standard">
+          <option disabled selected>-- Select a standard</option>
+          {% for key, value in standards.items() %}
+            <option value="{{key}}"{% if key == post_standard %} selected {% endif %}>{{key}} - {{value}}</option>
+          {% endfor %}
+        </select>
+        <div class="form-text">What standard is this document for?</div>
+      </div>      
+
+      <div class="mb-3">
+        <label class="form-label" for="docname">Name of Document</label>
+        <input type="text" class="form-control" name="docname" id="docname" value="{{post_docname}}" placeholder="eg. Access Control Policy, Mobile Device Policy, New Supplier Procedure">
+        <div class="form-text">What document would you like to generate?</div>
+      </div>       
+
+      <button type="submit" class="btn btn-primary btn-lg"> 💃 GET Document</button>
+
+    </form>
+  </div>
+
+
+  <div class="p-3 rounded">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3 class="text-primary">{{prompt}}</h3>
+        <p class="lead">{{openAIAnswer}}</p>
+
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}

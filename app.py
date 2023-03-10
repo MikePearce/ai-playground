@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, Markup
 import config, aicontent, os
 from werkzeug.utils import secure_filename
 
@@ -58,6 +58,44 @@ def productDescription():
 
     return render_template('/lesson-plan.html', **locals())
 
+@app.route('/document', methods=["GET", "POST"])
+def documents():
+    standards = {
+        "ISO 9001" : "Quality Management", 
+        "ISO 27001" : "Information Security", 
+        "ISO 14001" : "Environmental Management", 
+        "ISO 13485" : "Medical Devices",
+        "ISO 31000" : "Risk Management",
+        "ISO 19011" : "Auditing Management"
+    }
+
+    industries = [
+        "Construction",
+        "Education",
+        "IT Security",
+        "Food Preparation"
+    ]
+    
+    if request.method == 'POST':
+        post_standard = request.form["standard"]
+        post_industry = request.form["industry"]
+        post_orgname = request.form["orgname"]
+        post_docname = request.form["docname"]
+
+        vowels = ['a', 'e', 'i', 'o']
+        letter = "an" if post_industry[0] in vowels else "a"
+        letter2 = "an" if post_docname[0] in vowels else "a"
+
+        query = f"Act as {letter} consultant for {post_standard} {post_industry} company called '{post_orgname}'. Write {letter2} {post_docname}. Include relevant section headings. Format it in HTML."
+        openAIAnswerUnformatted = aicontent.openAIQuery(query)
+        
+        answer = openAIAnswerUnformatted.replace('\n\n', '<br />')
+        answer = answer.replace('<!--', '')
+        openAIAnswer = Markup(answer)
+
+        prompt = f'{post_docname} ({post_standard})'
+
+    return render_template('document.html', **locals())
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='8888', debug=True)
