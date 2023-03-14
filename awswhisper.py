@@ -5,31 +5,39 @@ import urllib.request
 import json
 import pandas as pd
 import convert_multi
+import config
+import logging
+import sys
+from botocore.exceptions import ClientError
+from datetime import datetime
+import time
 
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY')
-BUCKET_NAME = 'myt-test-transcribe'
-FILE_NAME = '10_Sample_lesson_recording_1.mp4'
+AWS_SECRET_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+SESSION_TOKEN = os.environ.get('AWS_SESSION_TOKEN')
+BUCKET_NAME = 'tmp-transcribe-lessons-mikep'
+FILE_NAME = 'MathsGCSE4.mp4'
+
+logger = logging.getLogger(__name__)
 
 
-def get_unique_filename(filename):
+def get_job(job_name, transcribe_client):
     """
-    Returns a unique filename by appending a timestamp to the input filename.
-
-    Parameters
-    ----------
-    filename : str
-        The filename to be made unique.
-
-    Returns
-    -------
-    str
-        A unique filename.
+    Gets details about a transcription job.
+    :param job_name: The name of the job to retrieve.
+    :param transcribe_client: The Boto3 Transcribe client.
+    :return: The retrieved transcription job.
     """
-    timestamp = str(int(time.time()))
-    basename, ext = os.path.splitext(filename)
-    unique_filename = f'{basename}-{timestamp}{ext}'
-    return unique_filename
+    try:
+        response = transcribe_client.get_transcription_job(
+            TranscriptionJobName=job_name)
+        job = response['TranscriptionJob']
+        logger.info("Got job %s.", job['TranscriptionJobName'])
+    except ClientError:
+        logger.info("Couldn't get job %s.", job_name)
+        return False
+    else:
+        return job
 
 
 def start_transcribe_job(transcribe, bucket_name, job_name, file_name, max_speakers=2, show_speakers=True):
@@ -58,14 +66,32 @@ def start_transcribe_job(transcribe, bucket_name, job_name, file_name, max_speak
     """
     if max_speakers > 10:
         raise ValueError("Maximum detected speakers is 10.")
-
+    
+    # Check if a job exists first.
     file_uri = f'https://s3.amazonaws.com/{bucket_name}/{file_name}'
-
+    while True:
+        try:
+            job = get_job(job_name, transcribe)
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            if job['TranscriptionJobStatus'] == 'IN_PROGRESS':
+                print(f"[{current_time}] Job exists and is still processing...")
+            elif job['TranscriptionJobStatus'] == 'COMPLETED':
+                print(f"[{current_time}] Job exists and processing has finished")
+                return True
+            else:
+                print(f"[{current_time}] Job exists but is in an unexpected state: {job['TranscriptionJobStatus']}")
+        except Exception as e:
+            print(f"Job does not exist")
+            break
+        time.sleep(15)
+    
+    # Job doesn't exist
     try:
+        media_format = file_name.split('.')[-1].lower()
         transcribe.start_transcription_job(
             TranscriptionJobName=job_name,
             Media={'MediaFileUri': file_uri},
-            MediaFormat='mp4',
+            MediaFormat=media_format,
             LanguageCode='en-US',
             Settings={
                 'ShowSpeakerLabels': show_speakers,
@@ -75,7 +101,7 @@ def start_transcribe_job(transcribe, bucket_name, job_name, file_name, max_speak
         print("Starting job...")
         return True
     except Exception as e:
-        print(f"Failed to start job: {e}")
+        print(f"Failed to start job: {e}. File URI: {file_uri}")
         return False
 
 
@@ -95,19 +121,21 @@ def get_transcription_text(transcribe, job_name):
     str
         The filename of a JSON file containing the transcription.
     """
-    job = transcribe.get_transcription_job(TranscriptionJobName=job_name)
-    status = job['TranscriptionJob']['TranscriptionJobStatus']
-
+    job = get_job(job_name, transcribe)
+    
     while True:
         result = transcribe.get_transcription_job(TranscriptionJobName=job_name)
-        if result['TranscriptionJob']['TranscriptionJobStatus'] in ['COMPLETED', 'FAILED']:
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if job['TranscriptionJobStatus'] in ['COMPLETED', 'FAILED']:
+            print(f"[{current_time}] Job status: {job['TranscriptionJobStatus']}")
             break
-        
-    print(f"Status of job {job_name}: {result['TranscriptionJob']['TranscriptionJobStatus']}")
-    time.sleep(15)
+        print(f"[{current_time}] Job status: {job['TranscriptionJobStatus']}")
+        time.sleep(15)
 
-    if result['TranscriptionJob']['TranscriptionJobStatus'] == 'COMPLETED':
-        response = urllib.request.urlopen(job['TranscriptionJob']['Transcript']['TranscriptFileUri'])
+    print(f"Status of job {job_name}: {job['TranscriptionJobStatus']}")
+
+    if job['TranscriptionJobStatus'] == 'COMPLETED':
+        response = urllib.request.urlopen(job['Transcript']['TranscriptFileUri'])
         data = json.loads(response.read())
         json_filename = os.path.join(os.getcwd(), f"{job_name.split('.')[0]}.json")
         with open(json_filename, 'w') as file:
@@ -116,25 +144,28 @@ def get_transcription_text(transcribe, job_name):
         print(f"Transcription complete. JSON written to {json_filename}")
         return json_filename
     else:
-        print(f"Transcription failed with status {result['TranscriptionJob']['TranscriptionJobStatus']}")
+        print(f"Transcription failed with status {job['TranscriptionJobStatus']}")
         return None
 
 
 if __name__ == '__main__':
 
     # Get a unique Name
-    JOB_NAME = get_unique_filename(FILE_NAME)
+    #JOB_NAME = get_unique_filename(FILE_NAME)
+    JOB_NAME = FILE_NAME
 
     # create the AWS client object
     transcribe = boto3.client(
         'transcribe',
         aws_access_key_id=AWS_ACCESS_KEY_ID,
         aws_secret_access_key=AWS_SECRET_KEY,
+        aws_session_token=SESSION_TOKEN,
         region_name='eu-west-2'
     )
 
     # Start the job
     if start_transcribe_job(transcribe, BUCKET_NAME, JOB_NAME, FILE_NAME):
+        print("Trying to get transcription...")
         transcription_file = get_transcription_text(transcribe, JOB_NAME)
         if transcription_file:
             print("Converting JSON to multi person script file...")
