@@ -1,0 +1,55 @@
+{% extends 'includes/layout.html' %}
+
+{% block body %}
+<main class="container">
+  <div class="bg-light p-5 rounded mt-5">
+    <h1>Review a lesson recording</h1>
+    <p class="lead">
+        Video Player
+    </p>
+
+    <video id="videoPlayer" width="640" height="360" controls>
+        <source src="{{ url_for('static', filename="MathsGCSE2.mp4") }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <script>
+        // Replace this with the value provided from the server-side
+        const start_seconds = {{ query_time }}; // Start the video at 10 seconds
+
+        const videoPlayer = document.getElementById('videoPlayer');
+
+        videoPlayer.addEventListener('loadedmetadata', () => {
+            videoPlayer.currentTime = start_seconds;
+        });
+
+        // Optional: Start playing the video automatically
+        videoPlayer.addEventListener('canplay', () => {
+            videoPlayer.play();
+        });
+    </script>
+    <div class="p-3 rounded">
+        <div class="row">
+        <div class="col-lg-12">
+            <h3 class="text-primary">Summary of lesson</h3>
+            <p class="lead">{{summary}}</p>
+        </div>
+        </div>
+    </div>
+    <div class="p-3 rounded">
+        <div class="row">
+        <div class="col-lg-12">
+            <h3 class="text-primary">Transcription</h3>
+            <p class="lead">
+                <ul>
+                    {% for item in seconds_script %}
+                        {% for key, value in item.items() %}
+                            <li><a href="/video?time={{ key }}">{{ key }} seconds</a>: {{ value }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+
+            </p>
+        </div>
+        </div>
+    </div>
+{% endblock %}
