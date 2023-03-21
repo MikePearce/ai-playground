@@ -16,7 +16,7 @@ AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 SESSION_TOKEN = os.environ.get('AWS_SESSION_TOKEN')
 BUCKET_NAME = 'tmp-transcribe-lessons-mikep'
-FILE_NAME = 'MathsGCSE4.mp4'
+FILE_NAME = 'MathsGCSE2.mp4'
 
 logger = logging.getLogger(__name__)
 

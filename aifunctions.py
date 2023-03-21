@@ -48,11 +48,16 @@ def chatCompletionQuery(options):
             print(f"Problem with: {e}.")
 
 
-def getChoices(openAIResponse):
+def getChoices(openAIResponse, type="chatCompletionQuery"):
     """
     Returns a choice from the openai api response. This is generally the words you're looking for </force>
     """
     try:
-        return openAIResponse['choices'][0]['message']['content']
+        if type == "chatCompletionQuery":
+            text = openAIResponse['choices'][0]["message"]['content']
+        else:
+            text = openAIResponse['choices'][0]["text"]
+
+        return text
     except Exception as e:
         print(f"Unable to find choices: {e}.")

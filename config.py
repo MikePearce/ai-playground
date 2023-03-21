@@ -14,7 +14,7 @@ config = {
 }
 
 
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'static'
 
 
 

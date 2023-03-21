@@ -1,6 +1,14 @@
 import json
 import datetime
 import time as ptime
+import aifunctions
+
+def read_in_chunks(file, chunk_size=2048):
+  while True:
+      data = file.read(chunk_size)
+      if not data:
+          break
+      yield data
 
 def write_multiple_text(filename):
   # example filename: audio.json
@@ -59,5 +67,49 @@ def write_multiple_text(filename):
 
       # write into the .txt file
       for line_data in sorted_lines:
-        line = '[' + str(datetime.timedelta(seconds=int(round(float(line_data['time']))))) + '] ' + line_data.get('speaker') + ': ' + line_data.get('line')
-        w.write(line + '\n\n')
+        #line = '[' + str(datetime.timedelta(seconds=int(round(float(line_data['time']))))) + '] ' + line_data.get('speaker') + ': ' + line_data.get('line')
+        speaker = line_data.get('speaker').replace("spk_0", "John").replace("spk_1", "Jack")
+        line = speaker + ': ' + line_data.get('line')
+        w.write(line + '\n')
+
+      #Also write to a JSON file
+      print(f"{filename}-withseconds.json")
+      sorted_lines_data = []
+
+      for line_data in sorted_lines:
+          seconds_text = int(round(float(line_data['time'])))
+          speaker = line_data.get('speaker').replace("spk_0", "John").replace("spk_1", "Jack")
+          speaks = line_data.get('line')
+          line = f'{speaker}: {speaks}'
+          sorted_lines_data.append({seconds_text: line})
+
+      with open(f"{filename}-withseconds.json", 'w') as seconds_file:
+          json.dump(sorted_lines_data, seconds_file, indent=2)
+
+      #Now, get the openAI summary
+      #Open the text
+      options = {
+        "model": "text-davinci-003",
+        "temperature":0.7,
+        "max_tokens":1024,
+        "top_p":1,
+        "frequency_penalty":0,
+        "presence_penalty":0
+      } 
+
+      print("Summarising")
+      #It's too big to summarise in one go, so chunk it.
+      with open(f"{filename}.txt", 'r', encoding='utf-8') as file:
+          chunks = list(read_in_chunks(file))
+
+      # For each chunk get a summary
+      total_summary = ""
+      for chunk in chunks:
+        options["prompt"] = f"You are helping me summarise a long piece of text. There are two speakers: John and Jack. The current summary is \n\n'{total_summary}'. \n\nPlease summarise this text:\n\n {chunk.strip()} \n\nand add it to the previous summary so it makes sense. The summary should be around 300-500 words.",
+        #print(aifunctions.completionQuery(options))
+        total_summary = aifunctions.getChoices(aifunctions.completionQuery(options), "completionQuery")
+
+      # Then get a summary of the summaries
+      with open(f"{filename}-summary.txt", 'w') as summary:
+          summary.write(total_summary)
+        

@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, Markup
-import config, aicontent, os
+import config, aicontent, os, json
 from werkzeug.utils import secure_filename
+
+app = Flask(__name__, static_folder=config.UPLOAD_FOLDER)
 
 def page_not_found(e):
   return render_template('404.html'), 404
@@ -14,6 +16,20 @@ app.register_error_handler(404, page_not_found)
 @app.route('/', methods=["GET", "POST"])
 def index():
     return render_template('index.html', **locals())
+
+@app.route('/video', methods=["GET", "POST"])
+def video():
+    #get Summary
+    with open("MathsGCSE2-summary.txt", 'r') as file:
+        summary = file.read()
+
+    #get Json seconds file
+    with open("MathsGCSE2-withseconds.json", 'r', encoding='utf-8') as file:
+        seconds_script = json.load(file)
+
+    #get seconds
+    query_time = request.args.get('time')
+    return render_template('video.html', **locals())
 
 @app.route('/whisper', methods=["GET", "POST"])
 def whisper():
